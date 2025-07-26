@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>COG DG ROLLCALL</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #001f3f;
+      color: white;
+      margin: 0;
+      padding: 0;
+    }
+    h2 {
+      text-align: center;
+      text-transform: uppercase;
+    }
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 250px;
+      background-color: #001730;
+      padding-top: 60px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 10;
+    }
+    #sidebar.active { display: flex; }
+    #sidebar button {
+      background-color: #ffcc99;
+      color: black;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 0 10px;
+      width: calc(100% - 20px);
+      text-align: left;
+    }
+    #overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 9;
+      display: none;
+    }
+    .section {
+      display: none;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+    .active { display: block; }
+    .container {
+      background-color: white;
+      color: black;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      margin-top: 80px;
+    }
+    input, select, button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .dept.worship { background-color: #800000; }
+    .dept.outreach { background-color: #0a3b42; }
+    .dept.relationship { background-color: #e55c07; }
+    .dept.discipleship { background-color: #004aad; }
+    .dept.administration { background-color: #314528; }
+
+    /* Popup modal */
+    #editModal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      color: black;
+      padding: 20px;
+      border-radius: 10px;
+      z-index: 20;
+      width: 300px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    #editOverlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 19;
+    }
+  </style>
+</head>
+<body>
+  <div style="position: fixed; top: 10px; left: 10px; display: flex; align-items: center; gap: 10px; z-index: 11;">
+    <h1 style="font-size: 20px; margin: 0;">COG DG ROLLCALL</h1>
+    <button id="sidebarToggle" style="position: static; font-size: 24px; background: transparent; border: none; color: white; cursor: pointer;">☰</button>
+  </div>
+
+  <div id="sidebar">
+    <button onclick="showSection('register')">Add Members</button>
+    <button onclick="showSection('generate')">Generate QR</button>
+    <button onclick="showSection('records')">View Logs</button>
+    <button onclick="showSection('members')">Manage Members</button>
+  </div>
+  <div id="overlay"></div>
+
+  <!-- Register Section -->
+  <div id="register" class="section active">
+    <div class="container">
+      <h2>Add Member to List</h2>
+      <input type="text" id="nameInput" placeholder="Enter member's name">
+      <select id="departmentSelect">
+        <option value="worship">Worship</option>
+        <option value="outreach">Outreach</option>
+        <option value="relationship">Relationship</option>
+        <option value="discipleship">Discipleship</option>
+        <option value="administration">Administration</option>
+      </select>
+      <input type="text" id="ministryInput" placeholder="Enter ministry">
+      <button onclick="addMember()">Add Member</button>
+    </div>
+  </div>
+
+  <!-- QR Generate Section -->
+  <div id="generate" class="section">
+    <div class="container">
+      <h2>Generate Attendance QR Code</h2>
+      <div id="qrcode"></div>
+      <button onclick="downloadQR()">Download QR Code</button>
+    </div>
+  </div>
+
+  <!-- Logs Section -->
+  <div id="records" class="section">
+    <div class="container">
+      <h2>Consolidated Attendance Logs</h2>
+      <div id="logs"></div>
+    </div>
+  </div>
+
+  <!-- Manage Members Section -->
+  <div id="members" class="section">
+    <div class="container">
+      <h2>Manage Members</h2>
+      <ul id="memberList"></ul>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="editOverlay"></div>
+  <div id="editModal">
+    <h3>Edit Member</h3>
+    <input type="text" id="editName" placeholder="Name">
+    <select id="editDepartment">
+      <option value="worship">Worship</option>
+      <option value="outreach">Outreach</option>
+      <option value="relationship">Relationship</option>
+      <option value="discipleship">Discipleship</option>
+      <option value="administration">Administration</option>
+    </select>
+    <input type="text" id="editMinistry" placeholder="Ministry">
+    <button onclick="saveEdit()">Save</button>
+    <button onclick="closeEditModal()">Cancel</button>
+  </div>
+
+  <script>
+    const qrData = "https://shnbr.github.io/cog-dg-rollcall/?scan=1";
+    QRCode.toCanvas(document.createElement('canvas'), qrData, function (error, canvas) {
+      if (!error) document.getElementById('qrcode').appendChild(canvas);
+    });
+
+    const logs = [];
+    const members = [];
+    let editingIndex = null;
+
+    function addMember() {
+      const name = document.getElementById("nameInput").value.trim();
+      const dept = document.getElementById("departmentSelect").value;
+      const ministry = document.getElementById("ministryInput").value.trim();
+      if (name) {
+        const exists = members.find(m => m.name.toLowerCase() === name.toLowerCase() && m.dept === dept && m.ministry === ministry);
+        if (!exists) {
+          members.push({ name, dept, ministry });
+          renderMemberList();
+          alert("Member added successfully!");
+        } else {
+          alert("Member already exists.");
+        }
+        document.getElementById("nameInput").value = "";
+        document.getElementById("ministryInput").value = "";
+      }
+    }
+
+    function renderMemberList() {
+      const grouped = {};
+      members.forEach(member => {
+        if (!grouped[member.dept]) grouped[member.dept] = [];
+        grouped[member.dept].push(member);
+      });
+      const memberList = document.getElementById("memberList");
+      memberList.innerHTML = "";
+      for (const dept in grouped) {
+        const li = document.createElement("li");
+        li.className = `dept ${dept}`;
+        li.innerHTML = `<strong>${dept.toUpperCase()}</strong><ul>` +
+          grouped[dept]
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map(member => {
+              const idx = members.findIndex(m => m.name === member.name && m.dept === member.dept && m.ministry === member.ministry);
+              return `<li style='display: flex; align-items: center; justify-content: space-between; color: white;'>
+                        <span>${member.name} (${member.ministry})</span>
+                        <span style='margin-left: 10px;'>
+                          <button onclick="openEditModal(${idx})" style="margin-right: 5px;">✏️</button>
+                          <button onclick="deleteMember(${idx})">🗑️</button>
+                        </span>
+                      </li>`;
+            }).join('') +
+          "</ul>";
+        memberList.appendChild(li);
+      }
+    }
+
+    function openEditModal(index) {
+      editingIndex = index;
+      const member = members[index];
+      document.getElementById("editName").value = member.name;
+      document.getElementById("editDepartment").value = member.dept;
+      document.getElementById("editMinistry").value = member.ministry;
+      document.getElementById("editModal").style.display = "block";
+      document.getElementById("editOverlay").style.display = "block";
+    }
+
+    function saveEdit() {
+      const newName = document.getElementById("editName").value.trim();
+      const newDept = document.getElementById("editDepartment").value;
+      const newMinistry = document.getElementById("editMinistry").value.trim();
+      if (newName && newMinistry) {
+        members[editingIndex].name = newName;
+        members[editingIndex].dept = newDept;
+        members[editingIndex].ministry = newMinistry;
+        renderMemberList();
+        closeEditModal();
+      }
+    }
+
+    function closeEditModal() {
+      document.getElementById("editModal").style.display = "none";
+      document.getElementById("editOverlay").style.display = "none";
+    }
+
+    function deleteMember(index) {
+      if (confirm("Are you sure you want to remove this member?")) {
+        members.splice(index, 1);
+        renderMemberList();
+      }
+    }
+
+    function downloadQR() {
+      const canvas = document.querySelector("#qrcode canvas");
+      if (canvas) {
+        const link = document.createElement("a");
+        link.download = "cog-dg-rollcall-qr.png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      } else {
+        alert("QR Code not found.");
+      }
+    }
+
+    function showSection(id) {
+      document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      document.getElementById("sidebar").classList.remove("active");
+      document.getElementById("overlay").style.display = "none";
+    }
+
+    document.getElementById("sidebarToggle").addEventListener("click", function () {
+      const sidebar = document.getElementById("sidebar");
+      const overlay = document.getElementById("overlay");
+      sidebar.classList.toggle("active");
+      overlay.style.display = sidebar.classList.contains("active") ? "block" : "none";
+    });
+
+    document.getElementById("overlay").addEventListener("click", function () {
+      document.getElementById("sidebar").classList.remove("active");
+      this.style.display = "none";
+    });
+  </script>
+</body>
+</html>
