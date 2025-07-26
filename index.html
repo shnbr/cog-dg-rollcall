@@ -13,10 +13,36 @@
       margin: 0;
       padding: 0;
     }
-    h2 {
-      text-align: center;
-      text-transform: uppercase;
+    /* Header and Menu */
+    #header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #001f3f;
+      padding: 10px 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      z-index: 11;
     }
+    #header h1 {
+      font-size: 20px;
+      margin: 0;
+      text-transform: uppercase;
+      text-align: center;
+      flex-grow: 1;
+    }
+    #sidebarToggle {
+      background: transparent;
+      border: none;
+      font-size: 24px;
+      color: white;
+      cursor: pointer;
+    }
+
+    /* Sidebar */
     #sidebar {
       position: fixed;
       top: 0;
@@ -42,6 +68,7 @@
       width: calc(100% - 20px);
       text-align: left;
     }
+
     #overlay {
       position: fixed;
       top: 0;
@@ -52,20 +79,23 @@
       z-index: 9;
       display: none;
     }
+
+    /* Sections */
     .section {
       display: none;
       padding: 20px;
       max-width: 600px;
       margin: auto;
+      margin-top: 80px;
     }
     .active { display: block; }
+
     .container {
       background-color: white;
       color: black;
       padding: 20px;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      margin-top: 80px;
     }
     input, select, button {
       display: block;
@@ -75,58 +105,52 @@
       border-radius: 5px;
       border: 1px solid #ccc;
     }
+
+    /* Department Colors */
     .dept.worship { background-color: #800000; }
     .dept.outreach { background-color: #0a3b42; }
     .dept.relationship { background-color: #e55c07; }
     .dept.discipleship { background-color: #004aad; }
     .dept.administration { background-color: #314528; }
 
-    /* Popup modal */
-    #editModal {
+    /* Popup for editing members */
+    #editPopup {
       display: none;
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background-color: white;
+      background: white;
       color: black;
       padding: 20px;
-      border-radius: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
       z-index: 20;
-      width: 300px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
     }
-    #editOverlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      z-index: 19;
-    }
+    #editPopup.active { display: block; }
   </style>
 </head>
 <body>
-  <div style="position: fixed; top: 10px; left: 10px; display: flex; align-items: center; gap: 10px; z-index: 11;">
-    <h1 style="font-size: 20px; margin: 0;">COG DG ROLLCALL</h1>
-    <button id="sidebarToggle" style="position: static; font-size: 24px; background: transparent; border: none; color: white; cursor: pointer;">☰</button>
+  <div id="header">
+    <h1>COG DG ROLLCALL</h1>
+    <button id="sidebarToggle">☰</button>
   </div>
 
   <div id="sidebar">
     <button onclick="showSection('register')">Add Members</button>
     <button onclick="showSection('generate')">Generate QR</button>
+    <button onclick="showSection('scan')">Scan Attendance</button>
     <button onclick="showSection('records')">View Logs</button>
     <button onclick="showSection('members')">Manage Members</button>
   </div>
   <div id="overlay"></div>
 
-  <!-- Register Section -->
+  <!-- Registration -->
   <div id="register" class="section active">
     <div class="container">
       <h2>Add Member to List</h2>
       <input type="text" id="nameInput" placeholder="Enter member's name">
+      <input type="text" id="ministryInput" placeholder="Enter ministry">
       <select id="departmentSelect">
         <option value="worship">Worship</option>
         <option value="outreach">Outreach</option>
@@ -134,12 +158,11 @@
         <option value="discipleship">Discipleship</option>
         <option value="administration">Administration</option>
       </select>
-      <input type="text" id="ministryInput" placeholder="Enter ministry">
       <button onclick="addMember()">Add Member</button>
     </div>
   </div>
 
-  <!-- QR Generate Section -->
+  <!-- QR Generator -->
   <div id="generate" class="section">
     <div class="container">
       <h2>Generate Attendance QR Code</h2>
@@ -148,7 +171,17 @@
     </div>
   </div>
 
-  <!-- Logs Section -->
+  <!-- Scan Attendance -->
+  <div id="scan" class="section">
+    <div class="container">
+      <h2>Scan Attendance</h2>
+      <p>Enter your name as it appears in the member list:</p>
+      <input type="text" id="scanNameInput" placeholder="Enter your name">
+      <button onclick="recordAttendance()">Submit Attendance</button>
+    </div>
+  </div>
+
+  <!-- Attendance Logs -->
   <div id="records" class="section">
     <div class="container">
       <h2>Consolidated Attendance Logs</h2>
@@ -156,7 +189,7 @@
     </div>
   </div>
 
-  <!-- Manage Members Section -->
+  <!-- Manage Members -->
   <div id="members" class="section">
     <div class="container">
       <h2>Manage Members</h2>
@@ -164,11 +197,11 @@
     </div>
   </div>
 
-  <!-- Edit Modal -->
-  <div id="editOverlay"></div>
-  <div id="editModal">
+  <!-- Popup Edit -->
+  <div id="editPopup">
     <h3>Edit Member</h3>
-    <input type="text" id="editName" placeholder="Name">
+    <input type="text" id="editName">
+    <input type="text" id="editMinistry">
     <select id="editDepartment">
       <option value="worship">Worship</option>
       <option value="outreach">Outreach</option>
@@ -176,39 +209,87 @@
       <option value="discipleship">Discipleship</option>
       <option value="administration">Administration</option>
     </select>
-    <input type="text" id="editMinistry" placeholder="Ministry">
     <button onclick="saveEdit()">Save</button>
-    <button onclick="closeEditModal()">Cancel</button>
+    <button onclick="closeEdit()">Cancel</button>
   </div>
 
   <script>
-    const qrData = "https://shnbr.github.io/cog-dg-rollcall/?scan=1";
+    const members = [];
+    const logs = [];
+    let editIndex = -1;
+
+    // Generate QR
+    const qrData = window.location.href + "?scan=1";
     QRCode.toCanvas(document.createElement('canvas'), qrData, function (error, canvas) {
       if (!error) document.getElementById('qrcode').appendChild(canvas);
     });
 
-    const logs = [];
-    const members = [];
-    let editingIndex = null;
-
+    // Add Member
     function addMember() {
       const name = document.getElementById("nameInput").value.trim();
-      const dept = document.getElementById("departmentSelect").value;
       const ministry = document.getElementById("ministryInput").value.trim();
-      if (name) {
-        const exists = members.find(m => m.name.toLowerCase() === name.toLowerCase() && m.dept === dept && m.ministry === ministry);
-        if (!exists) {
-          members.push({ name, dept, ministry });
-          renderMemberList();
-          alert("Member added successfully!");
-        } else {
-          alert("Member already exists.");
-        }
+      const dept = document.getElementById("departmentSelect").value;
+      if (name && ministry) {
+        members.push({ name, ministry, dept });
+        renderMemberList();
+        alert("Member added successfully!");
         document.getElementById("nameInput").value = "";
         document.getElementById("ministryInput").value = "";
       }
     }
 
+    // Record Attendance
+    function recordAttendance() {
+      const scanName = document.getElementById("scanNameInput").value.trim();
+      const member = members.find(m => m.name.toLowerCase() === scanName.toLowerCase());
+      if (member) {
+        logs.push({
+          name: member.name,
+          ministry: member.ministry,
+          dept: member.dept,
+          time: new Date().toLocaleString()
+        });
+        renderAttendanceLogs();
+        alert("Attendance recorded for " + member.name);
+        document.getElementById("scanNameInput").value = "";
+      } else {
+        alert("Name not found in member list. Please register first.");
+      }
+    }
+
+    // Render Logs with Quarterly Grouping
+    function renderAttendanceLogs() {
+      const grouped = {};
+      logs.forEach(log => {
+        if (!grouped[log.dept]) grouped[log.dept] = [];
+        grouped[log.dept].push(log);
+      });
+      const logsDiv = document.getElementById("logs");
+      logsDiv.innerHTML = "";
+      for (const dept in grouped) {
+        const div = document.createElement("div");
+        div.className = `dept ${dept}`;
+        const quarterly = {};
+        grouped[dept].forEach(log => {
+          const date = new Date(log.time);
+          const quarter = Math.floor((date.getMonth() + 3) / 3);
+          const year = date.getFullYear();
+          const key = `Q${quarter} ${year}`;
+          if (!quarterly[key]) quarterly[key] = [];
+          quarterly[key].push(log);
+        });
+        let html = `<strong>${dept.toUpperCase()}</strong>`;
+        for (const q in quarterly) {
+          html += `<h4>${q}</h4><ul>` + quarterly[q].map(log =>
+            `<li>${log.name} (${log.ministry}) - ${log.time}</li>`
+          ).join('') + "</ul>";
+        }
+        div.innerHTML = html;
+        logsDiv.appendChild(div);
+      }
+    }
+
+    // Render Members
     function renderMemberList() {
       const grouped = {};
       members.forEach(member => {
@@ -223,12 +304,12 @@
         li.innerHTML = `<strong>${dept.toUpperCase()}</strong><ul>` +
           grouped[dept]
             .sort((a, b) => a.name.localeCompare(b.name))
-            .map(member => {
-              const idx = members.findIndex(m => m.name === member.name && m.dept === member.dept && m.ministry === member.ministry);
-              return `<li style='display: flex; align-items: center; justify-content: space-between; color: white;'>
+            .map((member, index) => {
+              const idx = members.findIndex(m => m.name === member.name && m.dept === member.dept);
+              return `<li style='display:flex;align-items:center;justify-content:space-between;color:white;'>
                         <span>${member.name} (${member.ministry})</span>
-                        <span style='margin-left: 10px;'>
-                          <button onclick="openEditModal(${idx})" style="margin-right: 5px;">✏️</button>
+                        <span style='margin-left:10px;'>
+                          <button onclick="openEdit(${idx})" style="margin-right:5px;">✏️</button>
                           <button onclick="deleteMember(${idx})">🗑️</button>
                         </span>
                       </li>`;
@@ -238,34 +319,29 @@
       }
     }
 
-    function openEditModal(index) {
-      editingIndex = index;
-      const member = members[index];
-      document.getElementById("editName").value = member.name;
-      document.getElementById("editDepartment").value = member.dept;
-      document.getElementById("editMinistry").value = member.ministry;
-      document.getElementById("editModal").style.display = "block";
-      document.getElementById("editOverlay").style.display = "block";
+    // Edit Popup
+    function openEdit(index) {
+      editIndex = index;
+      document.getElementById("editName").value = members[index].name;
+      document.getElementById("editMinistry").value = members[index].ministry;
+      document.getElementById("editDepartment").value = members[index].dept;
+      document.getElementById("editPopup").classList.add("active");
     }
-
     function saveEdit() {
-      const newName = document.getElementById("editName").value.trim();
-      const newDept = document.getElementById("editDepartment").value;
-      const newMinistry = document.getElementById("editMinistry").value.trim();
-      if (newName && newMinistry) {
-        members[editingIndex].name = newName;
-        members[editingIndex].dept = newDept;
-        members[editingIndex].ministry = newMinistry;
+      if (editIndex > -1) {
+        members[editIndex].name = document.getElementById("editName").value.trim();
+        members[editIndex].ministry = document.getElementById("editMinistry").value.trim();
+        members[editIndex].dept = document.getElementById("editDepartment").value;
         renderMemberList();
-        closeEditModal();
+        closeEdit();
       }
     }
-
-    function closeEditModal() {
-      document.getElementById("editModal").style.display = "none";
-      document.getElementById("editOverlay").style.display = "none";
+    function closeEdit() {
+      document.getElementById("editPopup").classList.remove("active");
+      editIndex = -1;
     }
 
+    // Delete Member
     function deleteMember(index) {
       if (confirm("Are you sure you want to remove this member?")) {
         members.splice(index, 1);
@@ -273,6 +349,7 @@
       }
     }
 
+    // Download QR
     function downloadQR() {
       const canvas = document.querySelector("#qrcode canvas");
       if (canvas) {
@@ -285,6 +362,7 @@
       }
     }
 
+    // Navigation
     function showSection(id) {
       document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
       document.getElementById(id).classList.add('active');
@@ -298,7 +376,6 @@
       sidebar.classList.toggle("active");
       overlay.style.display = sidebar.classList.contains("active") ? "block" : "none";
     });
-
     document.getElementById("overlay").addEventListener("click", function () {
       document.getElementById("sidebar").classList.remove("active");
       this.style.display = "none";
